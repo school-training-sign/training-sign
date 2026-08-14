@@ -8,10 +8,10 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'">
   <title>학교 연수 전자서명</title>
   <link id="faviconLink" rel="icon" type="image/svg+xml" href="favicon.svg?v=20260720.5">
-  <link rel="stylesheet" href="assets/styles.css?v=20260721.3">
-  <script src="assets/config.js?v=20260721.4"></script>
+  <link rel="stylesheet" href="assets/styles.css?v=20260814.1">
+  <script src="assets/config.js?v=20260814.1"></script>
   <script src="vendor/qrcode.js" defer></script>
-  <script type="module" src="assets/app.js?v=20260721.4"></script>
+  <script type="module" src="assets/app.js?v=20260814.1"></script>
 </head>
 <body data-panel="loadingPanel">
   <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
@@ -136,11 +136,24 @@
       <div><p class="eyebrow">공유</p><h2>링크와 QR</h2></div>
       <button class="close-button" aria-label="닫기">×</button>
     </form>
-    <div id="qrCode" class="qr-box" aria-label="공유 QR 코드"></div>
+    <div class="share-qr-card" aria-label="연수 전자서명 QR 안내 카드">
+      <div class="share-qr-brand">
+        <div>
+          <p id="shareQrSchoolName" class="share-qr-school">학교 연수</p>
+          <strong>연수 전자서명</strong>
+        </div>
+        <img class="share-qr-mascot" data-qr-mascot alt="펜과 확인표를 든 학교 안내 사자 캐릭터">
+      </div>
+      <p class="share-qr-guide">휴대전화 카메라로 QR 코드를 스캔해 주세요.</p>
+      <div id="qrCode" class="qr-box" aria-label="공유 QR 코드"></div>
+    </div>
     <label>공유 링크
       <input id="shareUrl" type="text" readonly>
     </label>
-    <button id="copyShareUrl" class="button primary full" type="button">링크 복사</button>
+    <div class="share-action-row">
+      <button id="copyShareUrl" class="button primary" type="button">링크 복사</button>
+      <button id="printShareQr" class="button secondary" type="button">QR 인쇄</button>
+    </div>
     <p class="warning-note">이 링크를 가진 사람은 명단을 볼 수 있습니다. 학교 내부에서만 공유해 주세요.</p>
   </dialog>
 
@@ -359,7 +372,25 @@
 
       <section class="admin-section" data-admin-panel="share">
         <div class="section-heading"><div><h3>공유 및 보안</h3><p>링크 유출이 의심되면 공유 키를 교체하세요.</p></div></div>
-        <div class="subcard share-admin-card"><div id="adminQrCode" class="qr-box"></div><label>공유 링크<input id="adminShareUrl" readonly></label><button id="adminCopyShare" class="button primary" type="button">링크 복사</button><button id="rotateShareToken" class="button danger" type="button">공유 키 교체</button></div>
+        <div class="subcard share-admin-card">
+          <div class="share-qr-card" aria-label="연수 전자서명 관리자용 QR 안내 카드">
+            <div class="share-qr-brand">
+              <div>
+                <p id="adminShareQrSchoolName" class="share-qr-school">학교 연수</p>
+                <strong>연수 전자서명</strong>
+              </div>
+              <img class="share-qr-mascot" data-qr-mascot alt="펜과 확인표를 든 학교 안내 사자 캐릭터">
+            </div>
+            <p class="share-qr-guide">휴대전화 카메라로 QR 코드를 스캔해 주세요.</p>
+            <div id="adminQrCode" class="qr-box" aria-label="관리자 공유 QR 코드"></div>
+          </div>
+          <label>공유 링크<input id="adminShareUrl" readonly></label>
+          <div class="share-action-row">
+            <button id="adminCopyShare" class="button primary" type="button">링크 복사</button>
+            <button id="adminPrintShareQr" class="button secondary" type="button">QR 인쇄</button>
+          </div>
+          <button id="rotateShareToken" class="button danger" type="button">공유 키 교체</button>
+        </div>
         <form id="changePasswordForm" class="subcard"><h4>관리자 비밀번호 변경</h4><p>숫자 4자리 또는 문자와 숫자를 포함한 10자 이상을 사용할 수 있습니다.</p><label>현재 비밀번호<input id="currentPassword" type="password" minlength="4" maxlength="100" required></label><label>새 비밀번호<input id="newPassword" type="password" minlength="4" maxlength="100" title="숫자 4자리 또는 문자와 숫자를 포함한 10자 이상" required></label><button class="button secondary" type="submit">비밀번호 변경</button></form>
       </section>
     </div>
@@ -391,6 +422,34 @@
       <iframe id="exportPreviewFrame" title="서명등록부 A4 미리보기"></iframe>
     </div>
   </dialog>
+
+  <section id="qrPrintPage" class="qr-print-page" aria-hidden="true">
+    <article class="qr-print-poster">
+      <header class="qr-print-header">
+        <div>
+          <p class="qr-print-kicker">교직원 연수 참여 확인</p>
+          <h1 id="qrPrintSchoolName">학교 연수</h1>
+          <h2>연수 전자서명</h2>
+        </div>
+        <img class="qr-print-mascot" data-qr-mascot alt="펜과 확인표를 든 학교 안내 사자 캐릭터">
+      </header>
+      <div class="qr-print-body">
+        <p class="qr-print-guide"><strong>카메라를 켜고 아래 QR 코드를 비춰 주세요.</strong><br>표시되는 링크를 누르면 서명 화면으로 이동합니다.</p>
+        <div id="qrPrintCode" class="qr-box" aria-label="인쇄용 공유 QR 코드"></div>
+        <ol class="qr-print-steps">
+          <li><span>1</span>연수 선택</li>
+          <li><span>2</span>부서·성명 선택</li>
+          <li><span>3</span>서명 제출</li>
+        </ol>
+      </div>
+      <footer class="qr-print-footer">
+        <strong>연수 참여 확인용</strong>
+        <span>QR 코드는 학교 내부에서만 공유해 주세요.</span>
+      </footer>
+    </article>
+  </section>
+
+  <img id="qrMascotAsset" class="hidden" src="assets/han-dae-bugo-mascot.png?v=20260814.1" alt="" aria-hidden="true">
 
   <div id="toast" class="toast hidden" role="status"></div>
 </body>

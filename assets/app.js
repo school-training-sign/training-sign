@@ -137,7 +137,7 @@ function hasAppsScriptLocationBridge() {
 }
 
 function appShareBaseUrl() {
-  return !DEMO && API_URL ? API_URL : staticBaseUrl;
+  return !DEMO && hasAppsScriptLocationBridge() ? API_URL : staticBaseUrl;
 }
 
 function initializeAppLocation() {
@@ -771,9 +771,74 @@ function renderQr(container, url) {
   container.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 4, scalable: true });
 }
 
+function shareCardSchoolName() {
+  return String(
+    state.publicData?.settings?.schoolName ||
+    state.adminData?.settings?.schoolName ||
+    '학교 연수'
+  ).trim() || '학교 연수';
+}
+
+function updateShareCardSchoolName(elementId) {
+  const element = $(elementId);
+  if (element) element.textContent = shareCardSchoolName();
+}
+
+function initializeQrMascots() {
+  const source = $('qrMascotAsset')?.src;
+  if (!source) return;
+  document.querySelectorAll('[data-qr-mascot]').forEach(image => {
+    image.src = source;
+  });
+}
+
+function printQrPoster(url) {
+  const printPage = $('qrPrintPage');
+  const printCode = $('qrPrintCode');
+  if (!url || !printPage || !printCode) {
+    showToast('인쇄할 QR 링크를 준비하지 못했습니다.', 4200);
+    return;
+  }
+
+  const schoolName = shareCardSchoolName();
+  $('qrPrintSchoolName').textContent = schoolName;
+  renderQr(printCode, url);
+  if (!printCode.querySelector('svg')) {
+    showToast('QR 코드를 만든 뒤 다시 시도해 주세요.', 4200);
+    return;
+  }
+
+  const previousTitle = document.title;
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    window.removeEventListener('afterprint', cleanup);
+    document.body.classList.remove('qr-printing');
+    printPage.setAttribute('aria-hidden', 'true');
+    document.title = previousTitle;
+  };
+
+  printPage.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('qr-printing');
+  document.title = `${schoolName} 연수 전자서명 QR`;
+  window.addEventListener('afterprint', cleanup, { once: true });
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    try {
+      window.print();
+    } catch {
+      showToast('인쇄창을 열지 못했습니다. Chrome에서 다시 시도해 주세요.', 4200);
+    } finally {
+      setTimeout(cleanup, 1200);
+    }
+  }));
+}
+
 function openShareDialog() {
   const url = buildShareUrl(appShareBaseUrl(), shareToken);
   $('shareUrl').value = url;
+  updateShareCardSchoolName('shareQrSchoolName');
   renderQr($('qrCode'), url);
   $('shareDialog').showModal();
 }
@@ -2054,8 +2119,9 @@ async function handleRecordClick(event) {
 }
 
 function renderShareAdmin() {
-  const url = state.adminData?.shareUrl || buildShareUrl(appShareBaseUrl(), state.adminData?.shareToken || '');
+  const url = buildShareUrl(appShareBaseUrl(), state.adminData?.shareToken || shareToken);
   $('adminShareUrl').value = url;
+  updateShareCardSchoolName('adminShareQrSchoolName');
   renderQr($('adminQrCode'), url);
 }
 
@@ -2070,7 +2136,9 @@ async function rotateShareToken() {
   try {
     const data = await rpc('rotate_share_token');
     state.adminData.shareToken = data.shareToken;
-    state.adminData.shareUrl = data.shareUrl;
+    state.adminData.shareUrl = buildShareUrl(appShareBaseUrl(), data.shareToken);
+    shareToken = data.shareToken;
+    replaceAppHash(shareToken);
     renderShareAdmin();
     showToast('공유 키를 교체했습니다. 새 링크를 안내해 주세요.', 4200);
   } catch (error) { showToast(error.message, 4200); }
@@ -2590,6 +2658,7 @@ function bindEvents() {
   new ResizeObserver(resizeCanvas).observe($('signatureCanvas'));
   $('shareButton').addEventListener('click', openShareDialog);
   $('copyShareUrl').addEventListener('click', () => copyText($('shareUrl').value, '공유 링크를 복사했습니다.'));
+  $('printShareQr').addEventListener('click', () => printQrPoster($('shareUrl').value));
   ['openPrivacy', 'footerPrivacy'].forEach(id => $(id).addEventListener('click', renderPrivacy));
   $('adminButton').addEventListener('click', openAdminLogin);
   $('adminLoginForm').addEventListener('submit', handleAdminLogin);
@@ -2654,6 +2723,7 @@ function bindEvents() {
   $('recordList').addEventListener('click', handleRecordClick);
   $('rotateShareToken').addEventListener('click', rotateShareToken);
   $('adminCopyShare').addEventListener('click', () => copyText($('adminShareUrl').value, '공유 링크를 복사했습니다.'));
+  $('adminPrintShareQr').addEventListener('click', () => printQrPoster($('adminShareUrl').value));
   $('changePasswordForm').addEventListener('submit', changePassword);
   $('exportForm').addEventListener('submit', startExport);
   $('exportJobList').addEventListener('click', handleExportJobClick);
@@ -2663,5 +2733,6 @@ function bindEvents() {
   $('exportPreviewDialog').addEventListener('cancel', event => { event.preventDefault(); closeExportPreview(); });
 }
 
+initializeQrMascots();
 bindEvents();
 initializeAppLocation().then(initializePublicApp);

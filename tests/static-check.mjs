@@ -8,6 +8,7 @@ const app = read('assets/app.js');
 const config = read('assets/config.js');
 const backend = read('apps-script/Code.gs');
 const favicon = read('favicon.svg');
+const operations = read('OPERATIONS.md');
 
 new Function(backend);
 
@@ -171,7 +172,12 @@ expect(read('vendor/xlsx.full.min.js').includes('0.20.3'), 'SheetJS가 고정 �
 expect(!/<script[^>]+xlsx\.full\.min\.js/.test(index), '일반 참여자 화면이 SheetJS를 즉시 불러오고 있습니다.');
 expect(/function loadXlsxLibrary\(\)/.test(app) && /asset', 'sheetjs'/.test(app) && /await loadXlsxLibrary\(\)/.test(app), '관리자 엑셀 기능의 SheetJS 지연 로딩이 누락되었습니다.');
 expect(/createHtmlOutputFromFile\('SheetJS'\)/.test(backend) && /MimeType\.JAVASCRIPT/.test(backend), 'Apps Script가 자체 SheetJS 자산을 제공하지 않습니다.');
-expect(/assets\/config\.js\?v=20260721\.4/.test(index) && /assets\/app\.js\?v=20260721\.4/.test(index), 'Pages 전환 파일의 캐시 버전이 갱신되지 않았습니다.');
+expect(/assets\/config\.js\?v=20260814\.1/.test(index) && /assets\/app\.js\?v=20260814\.1/.test(index), 'Pages 전환 파일의 캐시 버전이 갱신되지 않았습니다.');
+expect(/function appShareBaseUrl\(\)[\s\S]*hasAppsScriptLocationBridge\(\) \? API_URL : staticBaseUrl/.test(app), '현재 화면과 맞지 않는 백엔드 주소가 공유 링크로 복사될 수 있습니다.');
+expect(/id="printShareQr"/.test(index) && /id="adminPrintShareQr"/.test(index), '공개·관리자 QR 인쇄 버튼이 모두 없습니다.');
+expect(/function printQrPoster\(url\)/.test(app) && /renderQr\(printCode, url\)/.test(app) && /window\.print\(\)/.test(app), '공유 링크와 동일한 주소를 사용하는 QR 인쇄 흐름이 없습니다.');
+expect(/id="qrPrintPage"/.test(index) && /body\.qr-printing #qrPrintPage/.test(read('assets/styles.css')) && /@page\s*\{\s*size:\s*A4 portrait/.test(read('assets/styles.css')), 'A4 QR 전용 인쇄 화면이 없습니다.');
+expect(/class="share-qr-mascot"/.test(index) && fs.existsSync(path.join(root, 'assets', 'han-dae-bugo-mascot.png')), 'QR 바깥 안내 캐릭터 자산이 없습니다.');
 
 if (failures.length) {
   console.error(failures.map(message => `- ${message}`).join('\n'));

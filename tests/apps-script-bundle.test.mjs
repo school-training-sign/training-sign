@@ -19,6 +19,8 @@ test('Apps Script 화면 번들은 외부 정적 호스트 없이 한 파일로 
   assert.equal((html.match(/<\?/g) || []).length, 1);
   assert.doesNotMatch(html, /Content-Security-Policy/);
   assert.doesNotMatch(html, /(?:src|href)=["'](?:assets|vendor)\//);
+  assert.doesNotMatch(html, /han-dae-bugo-mascot\.png/);
+  assert.match(html, /data:image\/png;base64,/);
   assert.doesNotMatch(html, /\.\/core\.js|https?:\/\/(?:cdn|fonts\.)/i);
   assert.match(html, /qrcode-generator 2\.0\.4/);
   assert.match(html, /SheetJS Community Edition 0\.20\.3/);

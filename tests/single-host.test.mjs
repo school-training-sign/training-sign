@@ -64,7 +64,7 @@ test('Apps Script IFRAME은 바깥 해시를 읽고 갱신하며 정적 데모�
   assert.doesNotMatch(app, /setTimeout\(\(\) => finish\(null\)/);
   assert.match(app, /window\.google\.script\.history\.replace\(\{\}, \{\}, hash\)/);
   assert.match(app, /history\.replaceState\(null, '', token \? buildShareUrl\(staticBaseUrl, token\) : staticBaseUrl\)/);
-  assert.match(app, /function appShareBaseUrl\(\)[\s\S]*!DEMO && API_URL \? API_URL : staticBaseUrl/);
+  assert.match(app, /function appShareBaseUrl\(\)[\s\S]*!DEMO && hasAppsScriptLocationBridge\(\) \? API_URL : staticBaseUrl/);
   assert.match(app, /function replaceAppHash\(token\)[\s\S]*history\.replaceState\(null, '', token \? buildShareUrl\(staticBaseUrl, token\) : staticBaseUrl\)/);
   assert.match(app, /initializeAppLocation\(\)\.then\(initializePublicApp\)/);
 });
@@ -73,4 +73,6 @@ test('공유 주소는 저장된 외부 주소가 아니라 현재 배포 URL에
   assert.match(backend, /shareUrl: buildShareUrl_\(currentWebAppUrl_\(\), shareToken\)/);
   assert.match(backend, /function rotateShareToken_\(\)[\s\S]*const url = currentWebAppUrl_\(\)/);
   assert.match(app, /function openShareDialog\(\)[\s\S]*buildShareUrl\(appShareBaseUrl\(\), shareToken\)/);
+  assert.match(app, /function renderShareAdmin\(\)[\s\S]*buildShareUrl\(appShareBaseUrl\(\), state\.adminData\?\.shareToken \|\| shareToken\)/);
+  assert.doesNotMatch(app, /state\.adminData\?\.shareUrl \|\| buildShareUrl/);
 });
