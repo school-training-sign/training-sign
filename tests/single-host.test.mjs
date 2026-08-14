@@ -70,9 +70,49 @@ test('Apps Script IFRAME은 바깥 해시를 읽고 갱신하며 정적 데모�
 });
 
 test('공유 주소는 저장된 외부 주소가 아니라 현재 배포 URL에서 생성된다', () => {
-  assert.match(backend, /shareUrl: buildShareUrl_\(currentWebAppUrl_\(\), shareToken\)/);
-  assert.match(backend, /function rotateShareToken_\(\)[\s\S]*const url = currentWebAppUrl_\(\)/);
+  const adminDataBody = extractFunction(backend, 'getAdminData_', 'getAdminBootstrap_');
+  const adminBootstrapBody = extractFunction(backend, 'getAdminBootstrap_', 'getAdminSection_');
+  const adminSectionBody = extractFunction(backend, 'getAdminSection_', 'saveSettings_');
+  const rotateShareBody = extractFunction(backend, 'rotateShareToken_', 'requireShareToken_');
+  const adminJsonBodies = [adminDataBody, adminBootstrapBody, adminSectionBody, rotateShareBody].join('\n');
+
+  assert.doesNotMatch(adminJsonBodies, /currentWebAppUrl_|shareUrl/);
+  assert.match(adminDataBody, /shareToken:\s*shareToken/);
+  assert.match(adminBootstrapBody, /shareToken:\s*shareToken/);
+  assert.match(adminSectionBody, /section:\s*name,\s*shareToken:\s*shareToken/);
+  assert.match(rotateShareBody, /return \{\s*shareToken:\s*token\s*\}/);
   assert.match(app, /function openShareDialog\(\)[\s\S]*buildShareUrl\(appShareBaseUrl\(\), shareToken\)/);
   assert.match(app, /function renderShareAdmin\(\)[\s\S]*buildShareUrl\(appShareBaseUrl\(\), state\.adminData\?\.shareToken \|\| shareToken\)/);
   assert.doesNotMatch(app, /state\.adminData\?\.shareUrl \|\| buildShareUrl/);
+});
+
+test('빠른 관리자 로그인 응답은 웹앱 실행 주소 조회와 무관하게 만들어진다', () => {
+  const source = extractFunction(backend, 'getAdminBootstrap_', 'getAdminSection_');
+  let webAppUrlCalls = 0;
+  const getAdminBootstrap = new Function(
+    'requireInitialized_',
+    'PropertiesService',
+    'readSettings_',
+    'readRows_',
+    'SHEETS',
+    'orderSort_',
+    'publicTraining_',
+    'currentWebAppUrl_',
+    `${source}; return getAdminBootstrap_;`
+  )(
+    () => {},
+    { getScriptProperties: () => ({ getProperty: key => key === 'SHARE_TOKEN' ? 'share-token' : '' }) },
+    () => ({ schoolName: '테스트 학교' }),
+    () => [{ id: 'training-1' }],
+    { TRAININGS: {} },
+    () => 0,
+    training => training,
+    () => { webAppUrlCalls += 1; throw new Error('실행 주소를 확인할 수 없음'); }
+  );
+
+  const result = getAdminBootstrap();
+  assert.equal(webAppUrlCalls, 0);
+  assert.equal(result.shareToken, 'share-token');
+  assert.equal(Object.hasOwn(result, 'shareUrl'), false);
+  assert.deepEqual(result.loadedSections, ['settings', 'trainings', 'share']);
 });

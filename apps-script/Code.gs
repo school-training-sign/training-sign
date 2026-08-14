@@ -5,7 +5,7 @@
  */
 
 const APP = Object.freeze({
-  VERSION: '1.9.3',
+  VERSION: '1.9.4',
   TIME_ZONE: 'Asia/Seoul',
   DATA_FILE: '학교 연수 전자서명 데이터',
   GUIDE_SHEET: '사용설명서',
@@ -934,7 +934,7 @@ function getAdminData_() {
     .map(publicJob_);
   return {
     settings: readSettings_(), staff: staff, departments: listActiveDepartments_(), trainings: trainings, exports: exports,
-    shareToken: shareToken, shareUrl: buildShareUrl_(currentWebAppUrl_(), shareToken),
+    shareToken: shareToken,
     stats: { staff: staff.length, trainings: trainings.length, signatures: signatures.length }
   };
 }
@@ -949,7 +949,6 @@ function getAdminBootstrap_() {
     staff: [],
     exports: [],
     shareToken: shareToken,
-    shareUrl: buildShareUrl_(currentWebAppUrl_(), shareToken),
     loadedSections: ['settings', 'trainings', 'share']
   };
 }
@@ -986,7 +985,7 @@ function getAdminSection_(section) {
   }
   const properties = PropertiesService.getScriptProperties();
   const shareToken = properties.getProperty('SHARE_TOKEN') || '';
-  return { section: name, shareToken: shareToken, shareUrl: buildShareUrl_(currentWebAppUrl_(), shareToken) };
+  return { section: name, shareToken: shareToken };
 }
 
 function saveSettings_(input) {
@@ -1345,11 +1344,10 @@ function deleteRecord_(recordId) {
 function rotateShareToken_() {
   const properties = PropertiesService.getScriptProperties();
   const token = randomToken_(24);
-  const url = currentWebAppUrl_();
   properties.setProperty('SHARE_TOKEN', token);
   properties.deleteProperty('FRONTEND_URL');
   audit_('rotate_share_token', 'share', 1, '기존 공유 링크 무효화');
-  return { shareToken: token, shareUrl: buildShareUrl_(url, token) };
+  return { shareToken: token };
 }
 
 function requireShareToken_(token) {
