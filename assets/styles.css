@@ -401,7 +401,7 @@ body[data-panel="trainingPanel"] .site-footer { flex: 0 0 auto; padding: .55rem 
   body.qr-printing > :not(#qrPrintPage) { display: none !important; }
   body.qr-printing { display: block; width: 210mm; min-height: 297mm; margin: 0; background: #fff; }
   body.qr-printing #qrPrintPage { display: grid !important; place-items: center; width: 210mm; min-height: 297mm; padding: 13mm; background: #fff; color: #17211f; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  .qr-print-poster { display: grid; grid-template-rows: auto 1fr auto; width: 174mm; min-height: 258mm; overflow: hidden; border: .35mm solid #b9cbc5; border-radius: 6mm; background: #fff; }
+  .qr-print-poster { display: grid; grid-template-rows: auto 1fr; width: 174mm; min-height: 258mm; overflow: hidden; border: .35mm solid #b9cbc5; border-radius: 6mm; background: #fff; }
   .qr-print-header { display: flex; align-items: center; justify-content: space-between; gap: 8mm; min-height: 59mm; padding: 9mm 11mm 7mm; background: linear-gradient(135deg, #e8f5ef, #e9f1fb); border-bottom: .35mm solid #c9d9d3; }
   .qr-print-kicker { margin: 0 0 2mm; color: #2563a9; font-size: 10pt; font-weight: 900; letter-spacing: .04em; }
   .qr-print-header h1 { max-width: 105mm; margin: 0 0 1.5mm; color: #173f38; font-size: 20pt; line-height: 1.2; overflow-wrap: anywhere; }
@@ -412,11 +412,6 @@ body[data-panel="trainingPanel"] .site-footer { flex: 0 0 auto; padding: .55rem 
   .qr-print-guide strong { color: #17211f; font-size: 15pt; }
   .qr-print-body .qr-box { width: 89mm; min-height: 89mm; margin: 0; border: .35mm solid #d9e2df; border-radius: 4mm; padding: 7mm; background: #fff; }
   .qr-print-body .qr-box svg { width: 75mm; height: 75mm; }
-  .qr-print-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; width: 100%; margin: 7mm 0 0; padding: 0; list-style: none; }
-  .qr-print-steps li { display: flex; align-items: center; justify-content: center; gap: 2mm; min-height: 12mm; border: .3mm solid #d8e2de; border-radius: 3mm; color: #34443e; font-size: 10pt; font-weight: 800; }
-  .qr-print-steps span { display: grid; place-items: center; width: 6.5mm; height: 6.5mm; border-radius: 50%; background: #2563a9; color: #fff; font-size: 8.5pt; }
-  .qr-print-footer { display: flex; align-items: center; justify-content: space-between; gap: 6mm; min-height: 18mm; padding: 4mm 10mm; border-top: .35mm solid #dbe4e1; background: #f6f9f8; color: #596861; font-size: 9pt; }
-  .qr-print-footer strong { color: #173f38; }
   .site-header, .site-footer, .stepper, .button-row, .canvas-toolbar { display: none !important; }
   body, html { background: #fff; }
   .page-shell { width: 100%; margin: 0; }

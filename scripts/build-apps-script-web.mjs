@@ -17,7 +17,7 @@ const SOURCE_PATHS = Object.freeze({
   qrcode: join(ROOT_DIR, 'vendor', 'qrcode.js'),
   xlsx: join(ROOT_DIR, 'vendor', 'xlsx.full.min.js'),
   favicon: join(ROOT_DIR, 'favicon.svg'),
-  mascot: join(ROOT_DIR, 'assets', 'han-dae-bugo-mascot.png'),
+  mascot: join(ROOT_DIR, 'assets', 'hyu-qr-mascot.png'),
   notices: join(ROOT_DIR, 'THIRD_PARTY_NOTICES.md'),
   sheetJsLicense: join(ROOT_DIR, 'vendor', 'LICENSE-SheetJS.txt')
 });
@@ -149,7 +149,7 @@ async function build() {
   }
 
   html = html.replaceAll(/favicon\.svg(?:\?[^"'\s)]*)?/g, faviconDataUrl);
-  html = html.replaceAll(/assets\/han-dae-bugo-mascot\.png(?:\?[^"'\s)]*)?/g, mascotDataUrl);
+  html = html.replaceAll(/assets\/hyu-qr-mascot\.png(?:\?[^"'\s)]*)?/g, mascotDataUrl);
 
   const runtimeConfig = [
     '<script>',
