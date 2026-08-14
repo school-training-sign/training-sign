@@ -13,6 +13,7 @@ const SOURCE_PATHS = Object.freeze({
   styles: join(ROOT_DIR, 'assets', 'styles.css'),
   core: join(ROOT_DIR, 'assets', 'core.js'),
   app: join(ROOT_DIR, 'assets', 'app.js'),
+  publicBootstrap: join(ROOT_DIR, 'assets', 'public-bootstrap.js'),
   qrcode: join(ROOT_DIR, 'vendor', 'qrcode.js'),
   xlsx: join(ROOT_DIR, 'vendor', 'xlsx.full.min.js'),
   favicon: join(ROOT_DIR, 'favicon.svg'),
@@ -24,6 +25,7 @@ const SOURCE_PATHS = Object.freeze({
 const EXTERNAL_ASSET_TAGS = Object.freeze([
   /\s*<link\b[^>]*\bhref=["']assets\/styles\.css(?:\?[^"']*)?["'][^>]*>\s*/i,
   /\s*<script\b[^>]*\bsrc=["']assets\/config\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script>\s*/i,
+  /\s*<script\b[^>]*\bsrc=["']assets\/public-bootstrap\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script>\s*/i,
   /\s*<script\b[^>]*\bsrc=["']vendor\/qrcode\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script>\s*/i,
   /\s*<script\b[^>]*\bsrc=["']vendor\/xlsx\.full\.min\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script>\s*/i,
   /\s*<script\b[^>]*\bsrc=["']assets\/app\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script>\s*/i
@@ -70,7 +72,7 @@ function assertInlineSafe(source, kind) {
   }
 }
 
-function buildApplicationScript(coreSource, appSource, faviconDataUrl) {
+function buildApplicationScript(coreSource, appSource, publicBootstrapSource, faviconDataUrl) {
   const importMatch = appSource.match(APP_IMPORT_PATTERN);
   if (!importMatch) throw new Error('assets/app.js must import named exports from ./core.js.');
 
@@ -90,6 +92,7 @@ function buildApplicationScript(coreSource, appSource, faviconDataUrl) {
     '/* First-party application bundle: assets/core.js followed by assets/app.js. */',
     '(() => {',
     "'use strict';",
+    publicBootstrapSource.trim(),
     core.trim(),
     app.trim(),
     '})();'
@@ -105,11 +108,12 @@ function inlineScript(label, source) {
 }
 
 async function build() {
-  const [htmlSource, styles, core, app, qrcode, xlsx, favicon, mascot, notices, sheetJsLicense] = await Promise.all([
+  const [htmlSource, styles, core, app, publicBootstrap, qrcode, xlsx, favicon, mascot, notices, sheetJsLicense] = await Promise.all([
     readText(SOURCE_PATHS.html),
     readText(SOURCE_PATHS.styles),
     readText(SOURCE_PATHS.core),
     readText(SOURCE_PATHS.app),
+    readText(SOURCE_PATHS.publicBootstrap),
     readText(SOURCE_PATHS.qrcode),
     readText(SOURCE_PATHS.xlsx),
     readText(SOURCE_PATHS.favicon),
@@ -124,7 +128,7 @@ async function build() {
   }
   const faviconDataUrl = `data:image/svg+xml;base64,${Buffer.from(favicon, 'utf8').toString('base64')}`;
   const mascotDataUrl = `data:image/png;base64,${mascot.toString('base64')}`;
-  const applicationScript = buildApplicationScript(core, app, faviconDataUrl);
+  const applicationScript = buildApplicationScript(core, app, publicBootstrap, faviconDataUrl);
 
   let html = htmlSource;
   html = replaceExactlyOnce(

@@ -26,6 +26,9 @@ return {
     readSettings_ = function() { return settings; };
     privacyReady_ = function() { return true; };
     today_ = function() { return today; };
+    publicDataRevision_ = function() { return 'test-revision'; };
+    readCachedPublicData_ = function() { return null; };
+    writeCachedPublicData_ = function() {};
     readRows_ = function(definition) {
       if (definition === SHEETS.STAFF) return staff;
       if (definition === SHEETS.TRAININGS) return trainings;
@@ -66,6 +69,7 @@ return {
       };
     };
     invalidateRows_ = function() {};
+    invalidatePublicDataCache_ = function() {};
     audit_ = function() {};
     return {
       staffRows: staffRows,

@@ -172,7 +172,12 @@ expect(read('vendor/xlsx.full.min.js').includes('0.20.3'), 'SheetJS가 고정 �
 expect(!/<script[^>]+xlsx\.full\.min\.js/.test(index), '일반 참여자 화면이 SheetJS를 즉시 불러오고 있습니다.');
 expect(/function loadXlsxLibrary\(\)/.test(app) && /asset', 'sheetjs'/.test(app) && /await loadXlsxLibrary\(\)/.test(app), '관리자 엑셀 기능의 SheetJS 지연 로딩이 누락되었습니다.');
 expect(/createHtmlOutputFromFile\('SheetJS'\)/.test(backend) && /MimeType\.JAVASCRIPT/.test(backend), 'Apps Script가 자체 SheetJS 자산을 제공하지 않습니다.');
-expect(/assets\/config\.js\?v=20260814\.1/.test(index) && /assets\/app\.js\?v=20260814\.1/.test(index), 'Pages 전환 파일의 캐시 버전이 갱신되지 않았습니다.');
+expect(/assets\/config\.js\?v=20260814\.2/.test(index) && /assets\/public-bootstrap\.js\?v=20260814\.2/.test(index) && /assets\/app\.js\?v=20260814\.2/.test(index), 'Pages 전환 파일의 캐시 버전이 갱신되지 않았습니다.');
+expect(/rel="preconnect" href="https:\/\/script\.google\.com"/.test(index), '공개 API 연결 준비가 누락되었습니다.');
+expect(/TRAINING_SIGN_PUBLIC_DATA_PREFETCH/.test(read('assets/public-bootstrap.js')) && /prefetched\.promise/.test(app), '첫 공개 데이터 요청을 앱 파일 로딩과 겹치지 않습니다.');
+expect(/function getPublicData_\(shareToken\)[\s\S]*requireShareToken_\(shareToken\)[\s\S]*readCachedPublicData_/.test(backend), '공유 키 검증 뒤 공개 데이터 캐시를 사용하지 않습니다.');
+expect(/function invalidatePublicDataCache_/.test(backend) && (backend.match(/invalidatePublicDataCache_\(\)/g) || []).length >= 9, '공개 설정·연수·구성원 변경 시 캐시 무효화가 누락되었습니다.');
+expect(/function sheet_\(definition\)[\s\S]{0,500}getSheetByName/.test(backend) && !/function sheet_\(definition\)[\s\S]{0,300}ensureSheet_/.test(backend), '웹 요청이 데이터 탭 헤더를 매번 다시 검사합니다.');
 expect(/function appShareBaseUrl\(\)[\s\S]*hasAppsScriptLocationBridge\(\) \? API_URL : staticBaseUrl/.test(app), '현재 화면과 맞지 않는 백엔드 주소가 공유 링크로 복사될 수 있습니다.');
 expect(/id="printShareQr"/.test(index) && /id="adminPrintShareQr"/.test(index), '공개·관리자 QR 인쇄 버튼이 모두 없습니다.');
 expect(/function printQrPoster\(url\)/.test(app) && /renderQr\(printCode, url\)/.test(app) && /window\.print\(\)/.test(app), '공유 링크와 동일한 주소를 사용하는 QR 인쇄 흐름이 없습니다.');

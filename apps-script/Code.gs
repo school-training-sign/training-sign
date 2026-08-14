@@ -5,7 +5,7 @@
  */
 
 const APP = Object.freeze({
-  VERSION: '1.9.2',
+  VERSION: '1.9.3',
   TIME_ZONE: 'Asia/Seoul',
   DATA_FILE: '학교 연수 전자서명 데이터',
   GUIDE_SHEET: '사용설명서',
@@ -18,6 +18,9 @@ const APP = Object.freeze({
   MAX_EXPORT_ROWS: 200,
   EXPORT_BATCH_SIZE: 30,
   DOWNLOAD_CHUNK_SIZE: 1024 * 1024,
+  PUBLIC_CACHE_SECONDS: 300,
+  PUBLIC_CACHE_CHUNK_CHARS: 20000,
+  PUBLIC_CACHE_MAX_CHUNKS: 20,
   EXPORT_LEASE_MS: 7 * 60 * 1000,
   ONSITE_CODE_MAX_FAILURES: 5,
   ONSITE_CODE_MAX_SESSION_FAILURES: 50
@@ -42,8 +45,10 @@ const SETTING_KEYS = Object.freeze([
 const INSTANCE_PROPERTIES = Object.freeze([
   'SPREADSHEET_ID', 'INSTANCE_ID', 'ROOT_FOLDER_ID', 'SIGNATURE_FOLDER_ID', 'EXPORT_FOLDER_ID',
   'SHARE_TOKEN', 'SETUP_CODE', 'ADMIN_PEPPER', 'ADMIN_EPOCH', 'ADMIN_SALT', 'ADMIN_HASH', 'FRONTEND_URL',
-  'ONSITE_CODE_SECRET'
+  'ONSITE_CODE_SECRET', 'PUBLIC_DATA_REVISION'
 ]);
+
+const PUBLIC_DATA_CACHE_PREFIX_ = 'PUBLIC_DATA_V1_';
 
 let REQUEST_CONTEXT_ = null;
 
@@ -427,10 +432,13 @@ function validatePassword_(password) {
 function getPublicData_(shareToken) {
   requireInitialized_();
   requireShareToken_(shareToken);
+  const today = today_();
+  const revision = publicDataRevision_();
+  const cached = readCachedPublicData_(revision, today);
+  if (cached) return cached;
   const settings = readSettings_();
   const privacyReady = privacyReady_(settings);
   if (!privacyReady) apiError_('PRIVACY_NOT_READY', '관리자가 개인정보 처리 안내를 완료하지 않았습니다.');
-  const today = today_();
   const activeStaff = readRows_(SHEETS.STAFF)
     .filter(row => bool_(row.active))
     .sort(staffSort_);
@@ -443,7 +451,87 @@ function getPublicData_(shareToken) {
     })
     .map(publicStaff_);
   const trainings = trainingRows.map(publicTraining_);
-  return { settings: settings, staff: staff, trainings: trainings, privacyReady: true, serverDate: today };
+  const data = { settings: settings, staff: staff, trainings: trainings, privacyReady: true, serverDate: today };
+  writeCachedPublicData_(revision, today, data);
+  return data;
+}
+
+function publicDataRevision_() {
+  return String(PropertiesService.getScriptProperties().getProperty('PUBLIC_DATA_REVISION') || '1');
+}
+
+function publicDataCacheBaseKey_(revision, date) {
+  return PUBLIC_DATA_CACHE_PREFIX_ + APP.VERSION + '_' + String(date) + '_' + String(revision);
+}
+
+function readCachedPublicData_(revision, date) {
+  const cache = CacheService.getScriptCache();
+  const baseKey = publicDataCacheBaseKey_(revision, date);
+  try {
+    const manifestText = cache.get(baseKey + '_M');
+    if (!manifestText) return null;
+    const manifest = JSON.parse(manifestText);
+    const chunkCount = Number(manifest && manifest.chunks);
+    if (!Number.isInteger(chunkCount) || chunkCount < 1 || chunkCount > APP.PUBLIC_CACHE_MAX_CHUNKS) {
+      cache.remove(baseKey + '_M');
+      return null;
+    }
+    const keys = [];
+    for (let index = 0; index < chunkCount; index += 1) keys.push(baseKey + '_C' + index);
+    const chunks = cache.getAll(keys);
+    if (keys.some(function(key) { return typeof chunks[key] !== 'string'; })) return null;
+    const data = JSON.parse(keys.map(function(key) { return chunks[key]; }).join(''));
+    if (!data || data.privacyReady !== true || data.serverDate !== date || !data.settings ||
+        !Array.isArray(data.staff) || !Array.isArray(data.trainings)) return null;
+    return data;
+  } catch (error) {
+    console.warn('공개 데이터 캐시를 읽지 못했습니다: ' + String(error && error.message || error));
+    return null;
+  }
+}
+
+function writeCachedPublicData_(revision, date, data) {
+  if (publicDataRevision_() !== revision) return;
+  try {
+    const serialized = JSON.stringify(data);
+    const chunks = [];
+    for (let offset = 0; offset < serialized.length; offset += APP.PUBLIC_CACHE_CHUNK_CHARS) {
+      chunks.push(serialized.slice(offset, offset + APP.PUBLIC_CACHE_CHUNK_CHARS));
+    }
+    if (!chunks.length || chunks.length > APP.PUBLIC_CACHE_MAX_CHUNKS) return;
+    if (publicDataRevision_() !== revision) return;
+    const cache = CacheService.getScriptCache();
+    const baseKey = publicDataCacheBaseKey_(revision, date);
+    const values = {};
+    chunks.forEach(function(chunk, index) { values[baseKey + '_C' + index] = chunk; });
+    cache.putAll(values, APP.PUBLIC_CACHE_SECONDS);
+    if (publicDataRevision_() !== revision) {
+      cache.removeAll(Object.keys(values));
+      return;
+    }
+    cache.put(baseKey + '_M', JSON.stringify({ chunks: chunks.length }), APP.PUBLIC_CACHE_SECONDS);
+  } catch (error) {
+    console.warn('공개 데이터 캐시를 저장하지 못했습니다: ' + String(error && error.message || error));
+  }
+}
+
+function invalidatePublicDataCache_() {
+  const properties = PropertiesService.getScriptProperties();
+  const previousRevision = String(properties.getProperty('PUBLIC_DATA_REVISION') || '1');
+  properties.setProperty('PUBLIC_DATA_REVISION', Utilities.getUuid());
+  const baseKey = publicDataCacheBaseKey_(previousRevision, today_());
+  const cache = CacheService.getScriptCache();
+  try {
+    const manifest = JSON.parse(cache.get(baseKey + '_M') || '{}');
+    const chunkCount = Number(manifest.chunks);
+    const keys = [baseKey + '_M'];
+    if (Number.isInteger(chunkCount) && chunkCount > 0 && chunkCount <= APP.PUBLIC_CACHE_MAX_CHUNKS) {
+      for (let index = 0; index < chunkCount; index += 1) keys.push(baseKey + '_C' + index);
+    }
+    cache.removeAll(keys);
+  } catch (error) {
+    cache.remove(baseKey + '_M');
+  }
 }
 
 function submitSignature_(request) {
@@ -951,6 +1039,7 @@ function saveTraining_(input) {
       }
     }
   }
+  invalidatePublicDataCache_();
   audit_('save_training', stored.id, 1, stored.title);
   return { training: publicTraining_(stored) };
 }
@@ -1013,6 +1102,7 @@ function deleteTraining_(trainingId) {
   if (!training) apiError_('NOT_FOUND', '연수를 찾을 수 없습니다.');
   const closedState = removeTrainingReceptionState_(id);
   deleteRowById_(SHEETS.TRAININGS, id);
+  invalidatePublicDataCache_();
   if (closedState) {
     auditReceptionBestEffort_('close_training_reception', id, 1, training.title + ' · 세션 ' + closedState.sessionId + ' · 연수 삭제로 자동 종료');
   }
@@ -1037,6 +1127,7 @@ function moveTraining_(trainingId, direction) {
   sheet.getRange(rows[index].rowNumber, sortColumn).setValue(secondOrder);
   sheet.getRange(rows[target].rowNumber, sortColumn).setValue(firstOrder);
   invalidateRows_(SHEETS.TRAININGS);
+  invalidatePublicDataCache_();
   return {
     moved: true,
     trainings: readRows_(SHEETS.TRAININGS).sort(orderSort_).map(publicTraining_)
@@ -1067,6 +1158,7 @@ function saveStaffBatch_(people) {
     sheet.getRange(sheet.getLastRow() + 1, 1, created.length, SHEETS.STAFF.headers.length)
       .setValues(created.map(function(person) { return objectValues_(SHEETS.STAFF.headers, person); }));
     invalidateRows_(SHEETS.STAFF);
+    invalidatePublicDataCache_();
   }
   audit_('save_staff_batch', 'staff', created.length, '건너뜀 ' + skipped);
   return { added: created.length, skipped: skipped, people: created.map(publicStaff_) };
@@ -1084,6 +1176,7 @@ function updateStaff_(input) {
   if (duplicate) apiError_('DUPLICATE_STAFF', '같은 부서와 성명의 구성원이 이미 있습니다.');
   const stored = Object.assign({}, current.data, { department: department, name: name });
   writeObjectRow_(sheet_(SHEETS.STAFF), SHEETS.STAFF.headers, current.rowNumber, stored, SHEETS.STAFF);
+  invalidatePublicDataCache_();
   audit_('update_staff', id, 1, department + ' ' + name);
   return { updated: true, person: publicStaff_(stored) };
 }
@@ -1091,6 +1184,7 @@ function updateStaff_(input) {
 function deleteStaff_(staffId) {
   const id = id_(staffId, '구성원');
   deleteRowById_(SHEETS.STAFF, id);
+  invalidatePublicDataCache_();
   audit_('delete_staff', id, 1, '기존 서명 기록 유지');
   return { deleted: true, deletedId: id };
 }
@@ -1129,6 +1223,7 @@ function renameDepartment_(oldDepartment, newDepartment) {
       .setValues(trainingRows.map(function(item) { return objectValues_(SHEETS.TRAININGS.headers, item.data); }));
     invalidateRows_(SHEETS.TRAININGS);
   }
+  invalidatePublicDataCache_();
   audit_('rename_department', oldName, updated, newName + ' · 연수 대상 ' + changedTrainings.length + '건');
   return {
     updated: updated,
@@ -2239,7 +2334,11 @@ function hideDataSheets_(spreadsheet) {
 
 function sheet_(definition) {
   const context = requestContext_();
-  if (!context.sheets[definition.name]) context.sheets[definition.name] = ensureSheet_(spreadsheet_(), definition);
+  if (!context.sheets[definition.name]) {
+    const existing = spreadsheet_().getSheetByName(definition.name);
+    if (!existing) apiError_('DATA_SHEET_MISSING', definition.name + ' 데이터 탭이 없습니다. 시트 메뉴에서 초기 설정을 다시 실행해 주세요.');
+    context.sheets[definition.name] = existing;
+  }
   return context.sheets[definition.name];
 }
 
@@ -2340,6 +2439,7 @@ function writeSettings_(settings) {
   });
   sheet.getRange(2, 1, values.length, SHEETS.SETTINGS.headers.length).setValues(values);
   invalidateRows_(SHEETS.SETTINGS);
+  invalidatePublicDataCache_();
 }
 
 function privacyReady_(settings) {

@@ -8,6 +8,8 @@
   
   <title>학교 연수 전자서명</title>
   <link id="faviconLink" rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsbGVkYnk9ImZhdmljb25UaXRsZSI+CiAgPHRpdGxlIGlkPSJmYXZpY29uVGl0bGUiPuyXsOyImCDsoITsnpDshJzrqoU8L3RpdGxlPgogIDxyZWN0IGlkPSJicmFuZC10aWxlIiB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzI1NjNlYiIvPgogIDxyZWN0IGlkPSJwZW4tc3ltYm9sIiB4PSI2IiB5PSI4IiB3aWR0aD0iNDMiIGhlaWdodD0iMTQiIHJ4PSI3IiBmaWxsPSIjZmZmIi8+CiAgPHBhdGggZD0iTTQ3IDggNjAgMTUgNDcgMjJaIiBmaWxsPSIjYmZkYmZlIi8+CiAgPHBhdGggZD0ibTU3IDEzLjQgMyAxLjYtMyAxLjZaIiBmaWxsPSIjMTcyNTU0Ii8+CiAgPHBhdGggZD0iTTQzIDl2MTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI1NjNlYiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8dGV4dCBpZD0ic2lnbmF0dXJlLWxhYmVsIiB4PSIzMiIgeT0iNTYiIGZpbGw9IiNmZmYiIGZvbnQtc2l6ZT0iMjciIGZvbnQtd2VpZ2h0PSI5MDAiIGxldHRlci1zcGFjaW5nPSItMS41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBzdHlsZT0iZm9udC1mYW1pbHk6J01hbGd1biBHb3RoaWMnLCdBcHBsZSBTRCBHb3RoaWMgTmVvJywnTm90byBTYW5zIEtSJyxzYW5zLXNlcmlmIj7shJzrqoU8L3RleHQ+Cjwvc3ZnPgo=">
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <style>
 :root {
   --brand: #315c54;
@@ -3429,6 +3431,35 @@ var qrcode = function() {
 
 'use strict';
 
+(() => {
+  'use strict';
+
+  if (new URLSearchParams(window.location.search).get('demo') === '1') return;
+  const apiUrl = String(window.TRAINING_SIGN_WEB_APP_URL || window.TRAINING_SIGN_CONFIG?.API_URL || '').trim();
+  const shareToken = new URLSearchParams(window.location.hash.slice(1)).get('k') || '';
+  if (!/^[A-Za-z0-9_-]{20,100}$/.test(shareToken)) return;
+
+  try {
+    const url = new URL(apiUrl);
+    if (url.origin !== 'https://script.google.com' || !/^\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url.pathname)) return;
+  } catch (error) {
+    return;
+  }
+
+  const promise = fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'get_public_data', shareToken }),
+    redirect: 'follow',
+    cache: 'no-store'
+  }).then(
+    response => ({ response }),
+    error => ({ error })
+  );
+
+  window.TRAINING_SIGN_PUBLIC_DATA_PREFETCH = { apiUrl, shareToken, promise };
+})();
+
 const SEOUL_TIME_ZONE = 'Asia/Seoul';
 
 function parseShareToken(hash = '') {
@@ -3911,13 +3942,24 @@ async function rpc(action, payload = {}, options = {}) {
   }
   const body = { action, ...payload };
   if (options.admin !== false && state.adminSession && !body.sessionToken) body.sessionToken = state.adminSession;
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(body),
-    redirect: 'follow',
-    cache: 'no-store'
-  });
+  const prefetched = action === 'get_public_data' && options.admin === false
+    ? window.TRAINING_SIGN_PUBLIC_DATA_PREFETCH
+    : null;
+  let response;
+  if (prefetched && prefetched.apiUrl === API_URL && prefetched.shareToken === String(payload.shareToken || '')) {
+    window.TRAINING_SIGN_PUBLIC_DATA_PREFETCH = null;
+    const outcome = await prefetched.promise;
+    if (outcome.error) throw outcome.error;
+    response = outcome.response;
+  } else {
+    response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body),
+      redirect: 'follow',
+      cache: 'no-store'
+    });
+  }
   if (!response.ok) throw new Error(`서버 응답 오류 (${response.status})`);
   const result = await response.json();
   if (!result.ok) {

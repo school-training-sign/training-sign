@@ -286,13 +286,24 @@ async function rpc(action, payload = {}, options = {}) {
   }
   const body = { action, ...payload };
   if (options.admin !== false && state.adminSession && !body.sessionToken) body.sessionToken = state.adminSession;
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(body),
-    redirect: 'follow',
-    cache: 'no-store'
-  });
+  const prefetched = action === 'get_public_data' && options.admin === false
+    ? window.TRAINING_SIGN_PUBLIC_DATA_PREFETCH
+    : null;
+  let response;
+  if (prefetched && prefetched.apiUrl === API_URL && prefetched.shareToken === String(payload.shareToken || '')) {
+    window.TRAINING_SIGN_PUBLIC_DATA_PREFETCH = null;
+    const outcome = await prefetched.promise;
+    if (outcome.error) throw outcome.error;
+    response = outcome.response;
+  } else {
+    response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body),
+      redirect: 'follow',
+      cache: 'no-store'
+    });
+  }
   if (!response.ok) throw new Error(`서버 응답 오류 (${response.status})`);
   const result = await response.json();
   if (!result.ok) {
