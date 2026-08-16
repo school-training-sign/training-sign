@@ -35,7 +35,12 @@ test('Workspace 도메인 전용 웹앱 주소를 일반 exec 주소로 정규�
     normalizeWebAppExecUrl(`https://script.google.com/a/macros/hanyang-u.hs.kr/s/${deploymentId}/exec`),
     canonical
   );
+  assert.equal(
+    normalizeWebAppExecUrl(`https://script.google.com/a/hanyang-u.hs.kr/macros/s/${deploymentId}/exec`),
+    canonical
+  );
   assert.equal(normalizeWebAppExecUrl(`https://script.google.com/a/macros/hanyang-u.hs.kr/s/${deploymentId}/dev`), '');
+  assert.equal(normalizeWebAppExecUrl(`https://script.google.com/a/hanyang-u.hs.kr/macros/s/${deploymentId}/dev`), '');
   assert.equal(normalizeWebAppExecUrl(`${canonical}?redirect=1`), '');
   assert.equal(normalizeWebAppExecUrl(`https://evil.example/a/macros/hanyang-u.hs.kr/s/${deploymentId}/exec`), '');
 });

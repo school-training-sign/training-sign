@@ -2726,7 +2726,7 @@ function safeEqual_(left, right) {
 
 function normalizeWebAppExecUrl_(value) {
   const match = String(value || '').trim().match(
-    /^https:\/\/script\.google\.com\/(?:macros\/s|a\/macros\/[^/?#]+\/s)\/([A-Za-z0-9_-]+)\/exec$/
+    /^https:\/\/script\.google\.com\/(?:macros\/s|a\/macros\/[^/?#]+\/s|a\/[^/?#]+\/macros\/s)\/([A-Za-z0-9_-]+)\/exec$/
   );
   return match ? 'https://script.google.com/macros/s/' + match[1] + '/exec' : '';
 }
