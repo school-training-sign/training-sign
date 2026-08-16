@@ -106,7 +106,7 @@ function showSetupCode() {
 }
 
 function showWebAppUrl() {
-  const url = ScriptApp.getService().getUrl();
+  const url = normalizeWebAppExecUrl_(ScriptApp.getService().getUrl());
   const message = url
     ? '현재 웹앱 주소:\n\n' + url + '\n\n주소가 /exec로 끝나는지 확인하세요.'
     : '아직 웹앱으로 배포되지 않았습니다. Apps Script에서 ‘배포 → 새 배포 → 웹 앱’을 실행해 주세요.';
@@ -2724,11 +2724,18 @@ function safeEqual_(left, right) {
   return mismatch === 0;
 }
 
+function normalizeWebAppExecUrl_(value) {
+  const match = String(value || '').trim().match(
+    /^https:\/\/script\.google\.com\/(?:macros\/s|a\/macros\/[^/?#]+\/s)\/([A-Za-z0-9_-]+)\/exec$/
+  );
+  return match ? 'https://script.google.com/macros/s/' + match[1] + '/exec' : '';
+}
+
 function currentWebAppUrl_() {
   const context = requestContext_();
   if (context.webAppUrl) return context.webAppUrl;
-  const value = String(ScriptApp.getService().getUrl() || '').trim();
-  if (!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(value)) {
+  const value = normalizeWebAppExecUrl_(ScriptApp.getService().getUrl());
+  if (!value) {
     apiError_('WEB_APP_NOT_DEPLOYED', '현재 Apps Script 웹앱 실행 주소를 확인할 수 없습니다. /exec 주소로 배포한 뒤 다시 시도해 주세요.');
   }
   context.webAppUrl = value;

@@ -24,6 +24,22 @@ test('기본 GET은 번들 웹앱을 열고 format=json은 기존 진단 응답�
   assert.match(body, /template\.evaluate\(\)/);
 });
 
+test('Workspace 도메인 전용 웹앱 주소를 일반 exec 주소로 정규화한다', () => {
+  const source = extractFunction(backend, 'normalizeWebAppExecUrl_', 'currentWebAppUrl_');
+  const normalizeWebAppExecUrl = new Function(`${source}; return normalizeWebAppExecUrl_;`)();
+  const deploymentId = 'AKfycb_domain-safe_123';
+  const canonical = `https://script.google.com/macros/s/${deploymentId}/exec`;
+
+  assert.equal(normalizeWebAppExecUrl(canonical), canonical);
+  assert.equal(
+    normalizeWebAppExecUrl(`https://script.google.com/a/macros/hanyang-u.hs.kr/s/${deploymentId}/exec`),
+    canonical
+  );
+  assert.equal(normalizeWebAppExecUrl(`https://script.google.com/a/macros/hanyang-u.hs.kr/s/${deploymentId}/dev`), '');
+  assert.equal(normalizeWebAppExecUrl(`${canonical}?redirect=1`), '');
+  assert.equal(normalizeWebAppExecUrl(`https://evil.example/a/macros/hanyang-u.hs.kr/s/${deploymentId}/exec`), '');
+});
+
 test('Apps Script 바깥 탭 파비콘은 공개 파일 없이 데이터 URL로 기관 설정을 제공한다', () => {
   const body = backend.slice(backend.indexOf('function doGet'), backend.indexOf('function doPost'));
   assert.match(body, /\.setFaviconUrl\(currentFaviconDataUrl_\(\)\)/);

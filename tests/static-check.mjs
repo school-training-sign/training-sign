@@ -121,7 +121,7 @@ expect(/TEMPLATE_LOCK/.test(backend), '배포용 원본 초기화 잠금이 누�
 expect(/function doGet\(event\)[\s\S]*event\.parameter\.format[\s\S]*jsonOutput_[\s\S]*const webAppUrl = currentWebAppUrl_\(\)[\s\S]*HtmlService\.createTemplateFromFile\('WebApp'\)[\s\S]*template\.WEB_APP_URL = webAppUrl[\s\S]*template\.evaluate\(\)/.test(backend), '기본 GET이 번들 웹앱을 제공하거나 format=json 진단 응답을 보존하지 않습니다.');
 expect(/setFaviconUrl\(currentFaviconDataUrl_\(\)\)/.test(backend) && /function currentFaviconDataUrl_\(\)[\s\S]*data:image\/svg\+xml;base64,/.test(backend), 'Apps Script 바깥 브라우저 탭의 데이터 URL 파비콘이 누락되었습니다.');
 expect(!/MimeType\.XML/.test(backend), 'ContentService가 지원하지 않는 XML MIME 형식을 사용하고 있습니다.');
-expect(/function currentWebAppUrl_\(\)[\s\S]*ScriptApp\.getService\(\)\.getUrl\(\)[\s\S]*script\\\.google\\\.com\\\/macros\\\/s/.test(backend), '서버가 현재 배포된 Apps Script /exec 주소만 사용하지 않습니다.');
+expect(backend.includes('a\\/macros\\/[^/?#]+\\/s') && backend.includes("'https://script.google.com/macros/s/' + match[1] + '/exec'") && /function currentWebAppUrl_\(\)[\s\S]*normalizeWebAppExecUrl_\(ScriptApp\.getService\(\)\.getUrl\(\)\)/.test(backend), '서버가 일반·Workspace 도메인용 웹앱 주소를 안전한 /exec 주소로 정규화하지 않습니다.');
 expect(!/getProperty\('FRONTEND_URL'\)|setProperty\('FRONTEND_URL'\)|normalizeFrontendUrl_/.test(backend), '임의의 외부 프런트 주소를 읽거나 저장하는 코드가 남아 있습니다.');
 expect(/TRAINING_SIGN_WEB_APP_URL/.test(config) && !/__APPS_SCRIPT_WEB_APP_URL__/.test(config), '전환용 정적 주소가 비어 있거나 안전한 기본값으로 정리되지 않았습니다.');
 expect(/window\.TRAINING_SIGN_WEB_APP_URL \|\| window\.TRAINING_SIGN_CONFIG\?\.API_URL/.test(app) && /TRAINING_SIGN_CONFIG/.test(config) && /API_URL: window\.TRAINING_SIGN_WEB_APP_URL/.test(config), 'Pages 전환 기간의 이전 config 객체 호환성이 누락되었습니다.');
