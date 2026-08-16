@@ -5,7 +5,7 @@
  */
 
 const APP = Object.freeze({
-  VERSION: '1.9.4',
+  VERSION: '1.10.0',
   TIME_ZONE: 'Asia/Seoul',
   DATA_FILE: '학교 연수 전자서명 데이터',
   GUIDE_SHEET: '사용설명서',
@@ -39,7 +39,7 @@ const SHEETS = Object.freeze({
 
 const SETTING_KEYS = Object.freeze([
   'schoolName', 'subtitle', 'notice', 'brandColor',
-  'privacyPurpose', 'privacyItems', 'privacyRetention', 'faviconData'
+  'privacyPurpose', 'privacyItems', 'privacyRetention', 'faviconData', 'qrMascotData'
 ]);
 
 const INSTANCE_PROPERTIES = Object.freeze([
@@ -290,7 +290,8 @@ function initializeSystem() {
       privacyPurpose: '',
       privacyItems: '',
       privacyRetention: '',
-      faviconData: ''
+      faviconData: '',
+      qrMascotData: ''
     });
   }
   ensureCleanupTrigger_();
@@ -992,12 +993,15 @@ function saveSettings_(input) {
   const current = readSettings_();
   const settings = {};
   SETTING_KEYS.forEach(function(key) {
-    if (key === 'faviconData') return;
+    if (key === 'faviconData' || key === 'qrMascotData') return;
     settings[key] = string_(input && input[key], key === 'notice' ? 1000 : 500);
   });
   settings.faviconData = input && Object.prototype.hasOwnProperty.call(input, 'faviconData')
     ? validateFaviconData_(input.faviconData)
     : String(current.faviconData || '');
+  settings.qrMascotData = input && Object.prototype.hasOwnProperty.call(input, 'qrMascotData')
+    ? validateQrMascotData_(input.qrMascotData)
+    : String(current.qrMascotData || '');
   if (!privacyReady_(settings)) apiError_('PRIVACY_REQUIRED', '학교명과 개인정보 처리 안내를 모두 입력해 주세요.');
   if (!/^#[0-9a-f]{6}$/i.test(settings.brandColor)) settings.brandColor = '#315c54';
   writeSettings_(settings);
@@ -2233,7 +2237,7 @@ function ensureGuideSheet_(spreadsheet, rebuild) {
       pale: '#F3EDFF',
       steps: [
         ['1', '관리자 비밀번호 만들기', '초기 설정 코드와 관리자 비밀번호를 입력합니다.', '숫자 4자리 또는 문자·숫자를 포함한 10자 이상 비밀번호를 사용할 수 있습니다.'],
-        ['2', '기관 설정 입력', '기관 설정에서 학교명·부제목·안내문·개인정보 처리 안내·대표 색상을 저장합니다.', '개인정보 안내가 비어 있으면 연수를 활성화할 수 없습니다.'],
+        ['2', '기관 설정 입력', '기관 설정에서 학교명·부제목·안내문·개인정보 처리 안내·대표 색상을 저장합니다. 필요하면 QR 안내 캐릭터도 선택합니다.', '캐릭터는 공유 화면과 QR 인쇄물에 표시되며 QR 코드 안에는 겹치지 않습니다. 사용 권한이 있는 이미지만 등록하고 얼굴 사진이나 개인정보는 사용하지 마세요. 개인정보 안내가 비어 있으면 연수를 활성화할 수 없습니다.', 96],
         ['3', '구성원 등록', '구성원에서 부서와 성명을 등록합니다.', '이름은 띄어쓰기·쉼표·줄바꿈으로 여러 명을 한 번에 입력하거나 엑셀·CSV를 가져올 수 있습니다.'],
         ['4', '연수 등록', '연수에서 날짜·시간·활성 상태와 서명 대상(전체 구성원 또는 부서 선택)을 정합니다.', '현장 확인이 필요한 연수만 현장 접수 코드 사용을 켭니다. 기존 연수와 이 설정을 끈 연수는 코드 없이 운영됩니다.', 76],
         ['5', '공유 링크 배포', '공유·보안에서 참여 링크와 QR을 복사해 학교 내부에 안내합니다.', '링크를 받은 사람은 별도 Google 계정 없이 접속합니다.']
@@ -2463,6 +2467,32 @@ function validateFaviconData_(value) {
   const hasIhdr = String.fromCharCode(bytes[12] & 255, bytes[13] & 255, bytes[14] & 255, bytes[15] & 255) === 'IHDR';
   if (!validSignature || !hasIhdr || pngUint32_(bytes, 16) !== 64 || pngUint32_(bytes, 20) !== 64) {
     apiError_('BAD_FAVICON', '파비콘은 가로·세로 64픽셀 PNG여야 합니다.');
+  }
+  return 'data:image/png;base64,' + match[1];
+}
+
+function validateQrMascotData_(value) {
+  const data = String(value === undefined || value === null ? '' : value).trim();
+  if (!data) return '';
+  if (data.length > 45000) apiError_('QR_MASCOT_TOO_LARGE', 'QR 캐릭터 PNG는 32KB 이하여야 합니다.');
+  const match = data.match(/^data:image\/png;base64,([A-Za-z0-9+/]+={0,2})$/);
+  if (!match || match[1].length % 4 !== 0) apiError_('BAD_QR_MASCOT', '256×256 PNG QR 캐릭터만 저장할 수 있습니다.');
+  let bytes;
+  try {
+    bytes = Utilities.base64Decode(match[1]);
+  } catch (error) {
+    apiError_('BAD_QR_MASCOT', 'QR 캐릭터 PNG 데이터를 읽을 수 없습니다.');
+  }
+  if (!bytes || bytes.length < 33 || bytes.length > 32 * 1024) {
+    apiError_('QR_MASCOT_TOO_LARGE', 'QR 캐릭터 PNG는 32KB 이하여야 합니다.');
+  }
+  const expectedSignature = [137, 80, 78, 71, 13, 10, 26, 10];
+  const validSignature = expectedSignature.every(function(byte, index) { return (bytes[index] & 255) === byte; });
+  const hasIhdr = pngUint32_(bytes, 8) === 13 &&
+    String.fromCharCode(bytes[12] & 255, bytes[13] & 255, bytes[14] & 255, bytes[15] & 255) === 'IHDR';
+  const isRgba = (bytes[24] & 255) === 8 && (bytes[25] & 255) === 6;
+  if (!validSignature || !hasIhdr || pngUint32_(bytes, 16) !== 256 || pngUint32_(bytes, 20) !== 256 || !isRgba) {
+    apiError_('BAD_QR_MASCOT', 'QR 캐릭터는 가로·세로 256픽셀의 투명 PNG여야 합니다.');
   }
   return 'data:image/png;base64,' + match[1];
 }

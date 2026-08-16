@@ -9,7 +9,6 @@ const config = read('assets/config.js');
 const backend = read('apps-script/Code.gs');
 const favicon = read('favicon.svg');
 const operations = read('OPERATIONS.md');
-const qrMascot = fs.readFileSync(path.join(root, 'assets', 'hyu-qr-mascot.png'));
 
 new Function(backend);
 
@@ -94,6 +93,15 @@ expect(/const faviconUrl = favicon \|\| DEFAULT_FAVICON_URL/.test(app) && /\$\('
 expect(/브라우저 탭과 학교 이름 왼쪽에 함께 표시됩니다/.test(index), '관리자 파비콘 표시 위치 안내가 실제 동작과 다릅니다.');
 expect(/section === 'settings'[\s\S]{0,140}applySettings\(state\.adminData\.settings \|\| \{\}\)/.test(app), '다른 관리자에게서 동기화된 파비콘이 메인 화면에 반영되지 않습니다.');
 expect(/\.brand-mark-icon\s*\{[^}]*width:\s*100%[^}]*height:\s*100%[^}]*object-fit:\s*contain/.test(read('assets/styles.css')), '학교 이름 왼쪽 파비콘의 맞춤 표시 규칙이 없습니다.');
+expect(/id="settingsQrMascotFile"[^>]*accept="image\/png,image\/jpeg,image\/webp/.test(index) && /id="removeQrMascot"/.test(index), '관리자 QR 캐릭터 선택·제거 UI가 없습니다.');
+expect(/QR_MASCOT_SIZE\s*=\s*256/.test(app) && /QR_MASCOT_MAX_SOURCE_BYTES\s*=\s*2 \* 1024 \* 1024/.test(app) && /QR_MASCOT_MAX_PNG_BYTES\s*=\s*32 \* 1024/.test(app), 'QR 캐릭터 브라우저 변환·크기 제한이 없습니다.');
+expect(/function convertQrMascotFile\(file\)[\s\S]*context\.clearRect[\s\S]*context\.drawImage[\s\S]*canvasToPngBlob/.test(app), 'QR 캐릭터를 투명 PNG로 다시 만드는 처리가 없습니다.');
+expect(/settings\.qrMascotData = input && Object\.prototype\.hasOwnProperty\.call\(input, 'qrMascotData'\)[\s\S]*current\.qrMascotData/.test(backend), '구버전 화면 저장 시 기존 QR 캐릭터 보존 처리가 없습니다.');
+expect(/function validateQrMascotData_/.test(backend) && /pngUint32_\(bytes, 16\) !== 256/.test(backend) && /bytes\.length > 32 \* 1024/.test(backend), '서버 QR 캐릭터 PNG·256×256·32KB 검증이 없습니다.');
+expect(/function applyQrMascot\(source\)[\s\S]*querySelectorAll\('\[data-qr-mascot\]'\)[\s\S]*image\.hidden/.test(app) && /applyQrMascot\(String\(settings\.qrMascotData/.test(app), '설정한 캐릭터가 공유·관리자·인쇄 화면에 함께 적용되지 않습니다.');
+expect((index.match(/data-qr-mascot/g) || []).length === 3 && (index.match(/data-qr-mascot[^>]*hidden/g) || []).length === 3, 'QR 캐릭터가 없을 때 세 표시 위치를 숨기지 않습니다.');
+expect(!/localStorage[^\n]*qrMascot|qrMascot[^\n]*localStorage/i.test(app), 'QR 캐릭터가 브라우저 저장공간에 보관됩니다.');
+expect(!/hyu-qr-mascot/.test(index + app + read('scripts/build-apps-script-web.mjs')), '배포용 화면에 특정 학교 캐릭터가 고정되어 있습니다.');
 expect(/id="schoolDate"/.test(index) && /formatKoreanHeaderDate/.test(app), '메인 화면 날짜 표시가 없습니다.');
 expect(/data-panel="trainingPanel"[\s\S]*overflow:\s*hidden/.test(read('assets/styles.css')), '첫 단계 한 화면 배치 규칙이 없습니다.');
 expect(/isTrainingPublicOnDate_\(row, today\)/.test(backend) && /trainingDate <= today/.test(backend), '활성화한 과거 고정 연수가 공개 목록에 포함되지 않습니다.');
@@ -173,7 +181,7 @@ expect(read('vendor/xlsx.full.min.js').includes('0.20.3'), 'SheetJS가 고정 �
 expect(!/<script[^>]+xlsx\.full\.min\.js/.test(index), '일반 참여자 화면이 SheetJS를 즉시 불러오고 있습니다.');
 expect(/function loadXlsxLibrary\(\)/.test(app) && /asset', 'sheetjs'/.test(app) && /await loadXlsxLibrary\(\)/.test(app), '관리자 엑셀 기능의 SheetJS 지연 로딩이 누락되었습니다.');
 expect(/createHtmlOutputFromFile\('SheetJS'\)/.test(backend) && /MimeType\.JAVASCRIPT/.test(backend), 'Apps Script가 자체 SheetJS 자산을 제공하지 않습니다.');
-expect(/assets\/config\.js\?v=20260814\.3/.test(index) && /assets\/public-bootstrap\.js\?v=20260814\.3/.test(index) && /assets\/app\.js\?v=20260814\.3/.test(index), 'Pages 전환 파일의 캐시 버전이 갱신되지 않았습니다.');
+expect(/assets\/config\.js\?v=20260816\.1/.test(index) && /assets\/public-bootstrap\.js\?v=20260816\.1/.test(index) && /assets\/app\.js\?v=20260816\.1/.test(index), 'Pages 전환 파일의 캐시 버전이 갱신되지 않았습니다.');
 expect(/rel="preconnect" href="https:\/\/script\.google\.com"/.test(index), '공개 API 연결 준비가 누락되었습니다.');
 expect(/TRAINING_SIGN_PUBLIC_DATA_PREFETCH/.test(read('assets/public-bootstrap.js')) && /prefetched\.promise/.test(app), '첫 공개 데이터 요청을 앱 파일 로딩과 겹치지 않습니다.');
 expect(/function getPublicData_\(shareToken\)[\s\S]*requireShareToken_\(shareToken\)[\s\S]*readCachedPublicData_/.test(backend), '공유 키 검증 뒤 공개 데이터 캐시를 사용하지 않습니다.');
@@ -183,8 +191,7 @@ expect(/function appShareBaseUrl\(\)[\s\S]*hasAppsScriptLocationBridge\(\) \? AP
 expect(/id="printShareQr"/.test(index) && /id="adminPrintShareQr"/.test(index), '공개·관리자 QR 인쇄 버튼이 모두 없습니다.');
 expect(/function printQrPoster\(url\)/.test(app) && /renderQr\(printCode, url\)/.test(app) && /window\.print\(\)/.test(app), '공유 링크와 동일한 주소를 사용하는 QR 인쇄 흐름이 없습니다.');
 expect(/id="qrPrintPage"/.test(index) && /body\.qr-printing #qrPrintPage/.test(read('assets/styles.css')) && /@page\s*\{\s*size:\s*A4 portrait/.test(read('assets/styles.css')), 'A4 QR 전용 인쇄 화면이 없습니다.');
-expect(/class="share-qr-mascot"/.test(index) && /assets\/hyu-qr-mascot\.png\?v=20260814\.3/.test(index), 'QR 바깥 HYU 캐릭터 자산이 없습니다.');
-expect(qrMascot.subarray(1, 4).toString('ascii') === 'PNG' && qrMascot.readUInt32BE(16) >= 400 && qrMascot.readUInt32BE(20) >= 400 && qrMascot.includes(Buffer.from('tRNS')), 'QR 캐릭터가 고해상도 투명 PNG가 아닙니다.');
+expect(/class="share-qr-mascot"[^>]*data-qr-mascot/.test(index) && /class="qr-print-mascot"[^>]*data-qr-mascot/.test(index), 'QR 바깥 선택형 캐릭터 표시 위치가 없습니다.');
 const qrPrintMarkup = index.slice(index.indexOf('<section id="qrPrintPage"'), index.indexOf('<div id="toast"'));
 expect(!/qr-print-steps|qr-print-footer|연수 선택|부서·성명 선택|서명 제출|연수 참여 확인용|QR 코드는 학교 내부에서만 공유해 주세요/.test(qrPrintMarkup), 'QR 인쇄물에서 삭제한 단계·하단 안내 문구가 다시 나타납니다.');
 

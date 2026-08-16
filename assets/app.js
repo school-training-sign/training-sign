@@ -33,6 +33,11 @@ const SHEETJS_VERSION = '0.20.3';
 const DEFAULT_FAVICON_URL = 'favicon.svg?v=20260720.5';
 const FAVICON_MAX_SOURCE_BYTES = 2 * 1024 * 1024;
 const FAVICON_MAX_PNG_BYTES = 32 * 1024;
+const QR_MASCOT_SIZE = 256;
+const QR_MASCOT_MAX_SOURCE_BYTES = 2 * 1024 * 1024;
+const QR_MASCOT_MAX_PNG_BYTES = 32 * 1024;
+const QR_MASCOT_MAX_DIMENSION = 8192;
+const QR_MASCOT_MAX_PIXELS = 24 * 1000 * 1000;
 const ADMIN_SECTION_FOR_TAB = Object.freeze({
   trainings: 'training_workspace',
   staff: 'staff',
@@ -58,6 +63,7 @@ const state = {
   adminSyncTimer: null,
   adminAuthenticating: false,
   settingsFaviconData: '',
+  settingsQrMascotData: '',
   staffNamesComposing: false,
   activeReceptionTrainingId: '',
   receptionStatusCache: new Map(),
@@ -181,7 +187,9 @@ const demoData = {
     brandColor: '#315c54',
     privacyPurpose: '교직원 연수 참여 여부 확인 및 서명등록부 작성',
     privacyItems: '부서, 성명, 서명 이미지, 서명 날짜와 시각',
-    privacyRetention: '선택한 출력 파일을 보관한 뒤 시스템 원본을 삭제합니다.'
+    privacyRetention: '선택한 출력 파일을 보관한 뒤 시스템 원본을 삭제합니다.',
+    faviconData: '',
+    qrMascotData: ''
   },
   trainings: [
     { id: 'demo-training-1', title: '2026 개인정보 보호 연수', date: todaySeoul(), daily: false, startTime: '', endTime: '', active: true, sortOrder: 1, audienceMode: 'all', audienceDepartments: [], onsiteCodeRequired: false },
@@ -473,6 +481,7 @@ function applySettings(settings) {
   faviconLink.type = favicon ? 'image/png' : 'image/svg+xml';
   faviconLink.href = faviconUrl;
   $('brandMarkIcon').src = faviconUrl;
+  applyQrMascot(String(settings.qrMascotData || ''));
 }
 
 function showPanel(panelId) {
@@ -795,11 +804,12 @@ function updateShareCardSchoolName(elementId) {
   if (element) element.textContent = shareCardSchoolName();
 }
 
-function initializeQrMascots() {
-  const source = $('qrMascotAsset')?.src;
-  if (!source) return;
+function applyQrMascot(source) {
+  const dataUrl = String(source || '').trim();
   document.querySelectorAll('[data-qr-mascot]').forEach(image => {
-    image.src = source;
+    if (dataUrl) image.src = dataUrl;
+    else image.removeAttribute('src');
+    image.hidden = !dataUrl;
   });
 }
 
@@ -1976,13 +1986,28 @@ function fillSettingsForm() {
   $('settingsPrivacyItems').value = settings.privacyItems || '';
   $('settingsPrivacyRetention').value = settings.privacyRetention || '';
   state.settingsFaviconData = String(settings.faviconData || '');
+  state.settingsQrMascotData = String(settings.qrMascotData || '');
   renderFaviconSetting();
+  renderQrMascotSetting();
 }
 
 function renderFaviconSetting(message = '') {
   const favicon = state.settingsFaviconData;
   $('settingsFaviconPreview').src = favicon || DEFAULT_FAVICON_URL;
   $('settingsFaviconStatus').textContent = message || (favicon ? '사용자 지정 아이콘이 선택되어 있습니다.' : '현재 펜 모양과 ‘서명’ 글자가 있는 파란색 기본 아이콘을 사용합니다.');
+}
+
+function renderQrMascotSetting(message = '') {
+  const mascot = state.settingsQrMascotData;
+  const preview = $('settingsQrMascotPreview');
+  const empty = $('settingsQrMascotEmpty');
+  if (mascot) preview.src = mascot;
+  else preview.removeAttribute('src');
+  preview.hidden = !mascot;
+  empty.hidden = Boolean(mascot);
+  $('settingsQrMascotStatus').textContent = message || (mascot
+    ? '사용자 지정 캐릭터가 선택되어 있습니다.'
+    : '캐릭터를 등록하지 않으면 QR 코드만 깔끔하게 표시됩니다.');
 }
 
 function loadImageFromFile(file) {
@@ -2005,9 +2030,13 @@ function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('파비콘 이미지를 변환하지 못했습니다.'));
+    reader.onerror = () => reject(new Error('이미지를 변환하지 못했습니다.'));
     reader.readAsDataURL(blob);
   });
+}
+
+function canvasToPngBlob(canvas) {
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 }
 
 async function convertFaviconFile(file) {
@@ -2025,9 +2054,45 @@ async function convertFaviconFile(file) {
   const width = Math.max(1, Math.round(image.naturalWidth * scale));
   const height = Math.max(1, Math.round(image.naturalHeight * scale));
   context.drawImage(image, Math.round((64 - width) / 2), Math.round((64 - height) / 2), width, height);
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const blob = await canvasToPngBlob(canvas);
   if (!blob || blob.size > FAVICON_MAX_PNG_BYTES) throw new Error('변환된 파비콘이 32KB를 넘습니다. 더 단순한 이미지를 선택해 주세요.');
   return blobToDataUrl(blob);
+}
+
+async function convertQrMascotFile(file) {
+  const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/webp']);
+  if (!allowedTypes.has(String(file?.type || '').toLowerCase())) throw new Error('PNG·JPG·WebP 이미지만 선택할 수 있습니다.');
+  if (!file.size || file.size > QR_MASCOT_MAX_SOURCE_BYTES) throw new Error('QR 캐릭터 이미지는 2MB 이하여야 합니다.');
+  const image = await loadImageFromFile(file);
+  const width = Number(image.naturalWidth || 0);
+  const height = Number(image.naturalHeight || 0);
+  if (!width || !height) throw new Error('이미지 크기를 확인할 수 없습니다.');
+  if (width > QR_MASCOT_MAX_DIMENSION || height > QR_MASCOT_MAX_DIMENSION || width * height > QR_MASCOT_MAX_PIXELS) {
+    throw new Error('이미지 해상도가 너무 큽니다. 8,192픽셀 이하의 이미지를 선택해 주세요.');
+  }
+
+  for (const contentSize of [240, 216, 192, 168, 144]) {
+    const canvas = document.createElement('canvas');
+    canvas.width = QR_MASCOT_SIZE;
+    canvas.height = QR_MASCOT_SIZE;
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, QR_MASCOT_SIZE, QR_MASCOT_SIZE);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    const scale = Math.min(contentSize / width, contentSize / height);
+    const drawWidth = Math.max(1, Math.round(width * scale));
+    const drawHeight = Math.max(1, Math.round(height * scale));
+    context.drawImage(
+      image,
+      Math.round((QR_MASCOT_SIZE - drawWidth) / 2),
+      Math.round((QR_MASCOT_SIZE - drawHeight) / 2),
+      drawWidth,
+      drawHeight
+    );
+    const blob = await canvasToPngBlob(canvas);
+    if (blob && blob.size <= QR_MASCOT_MAX_PNG_BYTES) return blobToDataUrl(blob);
+  }
+  throw new Error('변환된 캐릭터가 32KB를 넘습니다. 배경이 단순한 로고나 캐릭터 이미지를 선택해 주세요.');
 }
 
 async function handleFaviconFile(event) {
@@ -2037,6 +2102,20 @@ async function handleFaviconFile(event) {
   try {
     state.settingsFaviconData = await convertFaviconFile(file);
     renderFaviconSetting('64×64 PNG로 맞췄습니다. 설정 저장을 눌러 적용하세요.');
+  } catch (error) {
+    showToast(error.message, 4200);
+  } finally {
+    input.value = '';
+  }
+}
+
+async function handleQrMascotFile(event) {
+  const input = event.currentTarget;
+  const file = input.files?.[0];
+  if (!file) return;
+  try {
+    state.settingsQrMascotData = await convertQrMascotFile(file);
+    renderQrMascotSetting('256×256 투명 PNG로 자동 조정했습니다. 설정 저장을 눌러 적용하세요.');
   } catch (error) {
     showToast(error.message, 4200);
   } finally {
@@ -2054,7 +2133,8 @@ async function saveSettings(event) {
     privacyPurpose: $('settingsPrivacyPurpose').value.trim(),
     privacyItems: $('settingsPrivacyItems').value.trim(),
     privacyRetention: $('settingsPrivacyRetention').value.trim(),
-    faviconData: state.settingsFaviconData
+    faviconData: state.settingsFaviconData,
+    qrMascotData: state.settingsQrMascotData
   };
   if (!isPrivacyReady(settings)) return showToast('개인정보 안내 항목을 모두 입력해 주세요.');
   try {
@@ -2728,6 +2808,11 @@ function bindEvents() {
     state.settingsFaviconData = '';
     renderFaviconSetting('기본 아이콘으로 되돌렸습니다. 설정 저장을 눌러 적용하세요.');
   });
+  $('settingsQrMascotFile').addEventListener('change', handleQrMascotFile);
+  $('removeQrMascot').addEventListener('click', () => {
+    state.settingsQrMascotData = '';
+    renderQrMascotSetting('캐릭터를 제거했습니다. 설정 저장을 눌러 적용하세요.');
+  });
   $('settingsForm').addEventListener('submit', saveSettings);
   $('recordTraining').addEventListener('change', syncRecordDateToTraining);
   $('recordFilterForm').addEventListener('submit', loadRecords);
@@ -2744,6 +2829,5 @@ function bindEvents() {
   $('exportPreviewDialog').addEventListener('cancel', event => { event.preventDefault(); closeExportPreview(); });
 }
 
-initializeQrMascots();
 bindEvents();
 initializeAppLocation().then(initializePublicApp);

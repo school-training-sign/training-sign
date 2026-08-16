@@ -10,11 +10,11 @@
   <link id="faviconLink" rel="icon" type="image/svg+xml" href="favicon.svg?v=20260720.5">
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="assets/styles.css?v=20260814.3">
-  <script src="assets/config.js?v=20260814.3"></script>
-  <script src="assets/public-bootstrap.js?v=20260814.3"></script>
+  <link rel="stylesheet" href="assets/styles.css?v=20260816.1">
+  <script src="assets/config.js?v=20260816.1"></script>
+  <script src="assets/public-bootstrap.js?v=20260816.1"></script>
   <script src="vendor/qrcode.js" defer></script>
-  <script type="module" src="assets/app.js?v=20260814.3"></script>
+  <script type="module" src="assets/app.js?v=20260816.1"></script>
 </head>
 <body data-panel="loadingPanel">
   <a class="skip-link" href="#mainContent">본문으로 바로가기</a>
@@ -145,7 +145,7 @@
           <p id="shareQrSchoolName" class="share-qr-school">학교 연수</p>
           <strong>연수 전자서명</strong>
         </div>
-        <img class="share-qr-mascot" data-qr-mascot alt="펜을 든 HYU 학교 캐릭터">
+        <img class="share-qr-mascot" data-qr-mascot alt="" aria-hidden="true" hidden>
       </div>
       <p class="share-qr-guide">휴대전화 카메라로 QR 코드를 스캔해 주세요.</p>
       <div id="qrCode" class="qr-box" aria-label="공유 QR 코드"></div>
@@ -365,6 +365,21 @@
               </div>
               <p id="settingsFaviconStatus" class="form-hint" aria-live="polite"></p>
             </div>
+            <div class="span-two image-setting qr-mascot-setting" role="group" aria-labelledby="settingsQrMascotLabel">
+              <div>
+                <p id="settingsQrMascotLabel" class="field-label">QR 안내 캐릭터</p>
+                <p class="form-hint">PNG·JPG·WebP, 최대 2MB · 공유 화면과 QR 인쇄물에 함께 표시됩니다. QR 코드 안에는 겹치지 않습니다.</p>
+              </div>
+              <div class="qr-mascot-preview-frame" aria-live="polite">
+                <img id="settingsQrMascotPreview" class="qr-mascot-preview" alt="QR 안내 캐릭터 미리보기" hidden>
+                <span id="settingsQrMascotEmpty" class="qr-mascot-empty">캐릭터 없음</span>
+              </div>
+              <div class="image-setting-actions">
+                <label class="file-button">캐릭터 이미지 선택<input id="settingsQrMascotFile" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></label>
+                <button id="removeQrMascot" class="button secondary" type="button">캐릭터 제거</button>
+              </div>
+              <p id="settingsQrMascotStatus" class="form-hint" aria-live="polite"></p>
+            </div>
             <label class="span-two">수집 목적<textarea id="settingsPrivacyPurpose" maxlength="500" required></textarea></label>
             <label class="span-two">수집 항목<textarea id="settingsPrivacyItems" maxlength="500" required></textarea></label>
             <label class="span-two">보관기간·삭제 방법<textarea id="settingsPrivacyRetention" maxlength="500" required></textarea></label>
@@ -382,7 +397,7 @@
                 <p id="adminShareQrSchoolName" class="share-qr-school">학교 연수</p>
                 <strong>연수 전자서명</strong>
               </div>
-              <img class="share-qr-mascot" data-qr-mascot alt="펜을 든 HYU 학교 캐릭터">
+              <img class="share-qr-mascot" data-qr-mascot alt="" aria-hidden="true" hidden>
             </div>
             <p class="share-qr-guide">휴대전화 카메라로 QR 코드를 스캔해 주세요.</p>
             <div id="adminQrCode" class="qr-box" aria-label="관리자 공유 QR 코드"></div>
@@ -434,7 +449,7 @@
           <h1 id="qrPrintSchoolName">학교 연수</h1>
           <h2>연수 전자서명</h2>
         </div>
-        <img class="qr-print-mascot" data-qr-mascot alt="펜을 든 HYU 학교 캐릭터">
+        <img class="qr-print-mascot" data-qr-mascot alt="" aria-hidden="true" hidden>
       </header>
       <div class="qr-print-body">
         <p class="qr-print-guide"><strong>카메라를 켜고 아래 QR 코드를 비춰 주세요.</strong><br>표시되는 링크를 누르면 서명 화면으로 이동합니다.</p>
@@ -442,8 +457,6 @@
       </div>
     </article>
   </section>
-
-  <img id="qrMascotAsset" class="hidden" src="assets/hyu-qr-mascot.png?v=20260814.3" alt="" aria-hidden="true">
 
   <div id="toast" class="toast hidden" role="status"></div>
 </body>

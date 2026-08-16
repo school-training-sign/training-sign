@@ -17,7 +17,6 @@ const SOURCE_PATHS = Object.freeze({
   qrcode: join(ROOT_DIR, 'vendor', 'qrcode.js'),
   xlsx: join(ROOT_DIR, 'vendor', 'xlsx.full.min.js'),
   favicon: join(ROOT_DIR, 'favicon.svg'),
-  mascot: join(ROOT_DIR, 'assets', 'hyu-qr-mascot.png'),
   notices: join(ROOT_DIR, 'THIRD_PARTY_NOTICES.md'),
   sheetJsLicense: join(ROOT_DIR, 'vendor', 'LICENSE-SheetJS.txt')
 });
@@ -108,7 +107,7 @@ function inlineScript(label, source) {
 }
 
 async function build() {
-  const [htmlSource, styles, core, app, publicBootstrap, qrcode, xlsx, favicon, mascot, notices, sheetJsLicense] = await Promise.all([
+  const [htmlSource, styles, core, app, publicBootstrap, qrcode, xlsx, favicon, notices, sheetJsLicense] = await Promise.all([
     readText(SOURCE_PATHS.html),
     readText(SOURCE_PATHS.styles),
     readText(SOURCE_PATHS.core),
@@ -117,7 +116,6 @@ async function build() {
     readText(SOURCE_PATHS.qrcode),
     readText(SOURCE_PATHS.xlsx),
     readText(SOURCE_PATHS.favicon),
-    readFile(SOURCE_PATHS.mascot),
     readText(SOURCE_PATHS.notices),
     readText(SOURCE_PATHS.sheetJsLicense)
   ]);
@@ -127,7 +125,6 @@ async function build() {
     throw new Error('Third-party notice text cannot be embedded safely in an HTML comment.');
   }
   const faviconDataUrl = `data:image/svg+xml;base64,${Buffer.from(favicon, 'utf8').toString('base64')}`;
-  const mascotDataUrl = `data:image/png;base64,${mascot.toString('base64')}`;
   const applicationScript = buildApplicationScript(core, app, publicBootstrap, faviconDataUrl);
 
   let html = htmlSource;
@@ -149,7 +146,6 @@ async function build() {
   }
 
   html = html.replaceAll(/favicon\.svg(?:\?[^"'\s)]*)?/g, faviconDataUrl);
-  html = html.replaceAll(/assets\/hyu-qr-mascot\.png(?:\?[^"'\s)]*)?/g, mascotDataUrl);
 
   const runtimeConfig = [
     '<script>',
