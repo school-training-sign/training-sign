@@ -45,15 +45,11 @@ test('Workspace 도메인 전용 웹앱 주소를 일반 exec 주소로 정규�
   assert.equal(normalizeWebAppExecUrl(`https://evil.example/a/macros/hanyang-u.hs.kr/s/${deploymentId}/exec`), '');
 });
 
-test('Apps Script 바깥 탭 파비콘은 공개 파일 없이 데이터 URL로 기관 설정을 제공한다', () => {
+test('Apps Script는 지원하지 않는 data URL을 바깥 파비콘 API에 넘기지 않는다', () => {
   const body = backend.slice(backend.indexOf('function doGet'), backend.indexOf('function doPost'));
-  assert.match(body, /\.setFaviconUrl\(currentFaviconDataUrl_\(\)\)/);
-  assert.match(body, /function currentFaviconDataUrl_\(\)/);
-  assert.match(body, /CacheService\.getScriptCache\(\)/);
-  assert.match(body, /readSettings_\(\)\.faviconData/);
-  assert.match(body, /data:image\/svg\+xml;base64,/);
-  assert.match(body, /function defaultFaviconSvg_\(\)[\s\S]*#2563eb[\s\S]*>서명<\/text>/);
-  assert.doesNotMatch(body, /MimeType\.XML|DriveApp|setSharing|ANYONE|imageFileId/);
+  assert.doesNotMatch(body, /\.setFaviconUrl\(/);
+  assert.doesNotMatch(backend, /function currentFaviconDataUrl_|function defaultFaviconSvg_/);
+  assert.match(app, /function applySettings\(settings\)[\s\S]*settings\.faviconData[\s\S]*faviconLink\.href = faviconUrl/);
 });
 
 test('브라우저는 서버가 주입한 Apps Script exec 주소만 POST 대상으로 사용한다', () => {

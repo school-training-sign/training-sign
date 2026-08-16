@@ -119,7 +119,7 @@ expect(/setTrashed\(true\)/.test(backend), '원본 파일 삭제 처리가 누�
 expect(/function onOpen\(\)/.test(backend) && /🖊️ 전자서명 관리/.test(backend), '연결형 시트 관리 메뉴가 누락되었습니다.');
 expect(/TEMPLATE_LOCK/.test(backend), '배포용 원본 초기화 잠금이 누락되었습니다.');
 expect(/function doGet\(event\)[\s\S]*event\.parameter\.format[\s\S]*jsonOutput_[\s\S]*const webAppUrl = currentWebAppUrl_\(\)[\s\S]*HtmlService\.createTemplateFromFile\('WebApp'\)[\s\S]*template\.WEB_APP_URL = webAppUrl[\s\S]*template\.evaluate\(\)/.test(backend), '기본 GET이 번들 웹앱을 제공하거나 format=json 진단 응답을 보존하지 않습니다.');
-expect(/setFaviconUrl\(currentFaviconDataUrl_\(\)\)/.test(backend) && /function currentFaviconDataUrl_\(\)[\s\S]*data:image\/svg\+xml;base64,/.test(backend), 'Apps Script 바깥 브라우저 탭의 데이터 URL 파비콘이 누락되었습니다.');
+expect(!/setFaviconUrl\(/.test(backend) && !/function currentFaviconDataUrl_|function defaultFaviconSvg_/.test(backend), 'Apps Script HtmlService에 지원되지 않는 data URL 파비콘을 전달하면 안 됩니다.');
 expect(!/MimeType\.XML/.test(backend), 'ContentService가 지원하지 않는 XML MIME 형식을 사용하고 있습니다.');
 expect(backend.includes('a\\/macros\\/[^/?#]+\\/s') && backend.includes("'https://script.google.com/macros/s/' + match[1] + '/exec'") && /function currentWebAppUrl_\(\)[\s\S]*normalizeWebAppExecUrl_\(ScriptApp\.getService\(\)\.getUrl\(\)\)/.test(backend), '서버가 일반·Workspace 도메인용 웹앱 주소를 안전한 /exec 주소로 정규화하지 않습니다.');
 expect(!/getProperty\('FRONTEND_URL'\)|setProperty\('FRONTEND_URL'\)|normalizeFrontendUrl_/.test(backend), '임의의 외부 프런트 주소를 읽거나 저장하는 코드가 남아 있습니다.');

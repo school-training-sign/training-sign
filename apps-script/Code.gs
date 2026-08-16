@@ -151,36 +151,7 @@ function doGet(event) {
   template.WEB_APP_URL = webAppUrl;
   return template.evaluate()
     .setTitle('학교 연수 전자서명')
-    .setFaviconUrl(currentFaviconDataUrl_())
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
-}
-
-/** HtmlService가 무시하는 내부 link 대신 바깥 브라우저 탭에 직접 넣을 데이터 URL입니다. */
-function currentFaviconDataUrl_() {
-  const cache = CacheService.getScriptCache();
-  let faviconData = cache.get('PUBLIC_FAVICON_DATA');
-  try {
-    const properties = PropertiesService.getScriptProperties();
-    if (faviconData === null && properties.getProperty('SPREADSHEET_ID')) {
-      faviconData = String(readSettings_().faviconData || '');
-      cache.put('PUBLIC_FAVICON_DATA', faviconData || '-', 21600);
-    }
-    if (faviconData && faviconData !== '-') return validateFaviconData_(faviconData);
-  } catch (error) {
-    console.warn('사용자 지정 파비콘을 읽지 못해 기본 아이콘을 사용합니다: ' + String(error && error.message || error));
-  }
-  return 'data:image/svg+xml;base64,' + Utilities.base64Encode(defaultFaviconSvg_(), Utilities.Charset.UTF_8);
-}
-
-function defaultFaviconSvg_() {
-  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
-    '<rect width="64" height="64" rx="14" fill="#2563eb"/>' +
-    '<rect x="6" y="8" width="43" height="14" rx="7" fill="#fff"/>' +
-    '<path d="M47 8 60 15 47 22Z" fill="#bfdbfe"/>' +
-    '<path d="m57 13.4 3 1.6-3 1.6Z" fill="#172554"/>' +
-    '<path d="M43 9v12" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>' +
-    '<text x="32" y="56" fill="#fff" font-size="27" font-weight="900" letter-spacing="-1.5" text-anchor="middle" font-family="Malgun Gothic,Apple SD Gothic Neo,sans-serif">서명</text>' +
-    '</svg>';
 }
 
 function doPost(event) {
