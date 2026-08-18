@@ -60,6 +60,10 @@ expect(/created\.length, SHEETS\.STAFF\.headers\.length\)[\s\S]*setValues/.test(
 expect(/withAdminMutationLock_/.test(backend), '동시 관리자 수정 잠금이 누락되었습니다.');
 expect(/\^\\d\{4\}\$/.test(backend), '숫자 4자리 관리자 비밀번호 검증이 누락되었습니다.');
 expect(!/privacyContact|settingsPrivacyContact/.test(index + app + backend), '개인정보 담당자·연락처 항목이 남아 있습니다.');
+expect(/privacyPurpose:\s*'교직원 연수 참여 여부 확인 및 서명등록부 작성'/.test(backend), '초기 개인정보 수집 목적 기본 문구가 없습니다.');
+expect(/privacyItems:\s*'부서, 성명, 서명 이미지, 서명 날짜와 시각'/.test(backend), '초기 개인정보 수집 항목 기본 문구가 없습니다.');
+expect(/privacyRetention:\s*'선택한 출력 파일을 보관한 뒤 시스템 원본을 삭제합니다\.'/.test(backend), '초기 개인정보 보관·삭제 기본 문구가 없습니다.');
+expect(/개인정보 처리 안내에는 기본 문구가 입력되어 있습니다/.test(backend), '사용설명서에 개인정보 기본 문구 확인 안내가 없습니다.');
 expect(!/trainingTarget/.test(index + app), '연수 대상·내용 입력 항목이 남아 있습니다.');
 expect(!/training\.target/.test(app), '연수 카드가 대상·내용 값을 사용하고 있습니다.');
 expect(/headers:\s*\['id', 'title', 'target',[^\]]*'audienceMode', 'audienceDepartments'(?:,\s*'onsiteCodeRequired')?\]/.test(backend), '연수별 서명 대상 부서 저장 열이 없습니다.');
